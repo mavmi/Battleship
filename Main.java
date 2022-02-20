@@ -120,51 +120,61 @@ class Battleship {
 
     public Battleship(){
         intiField();
-        printField(false);
         setShips();
-        startGame();
     }
 
-    private void startGame(){
-        System.out.println("The game starts!");
+    public void printField(boolean fog_of_war){
+        System.out.print(Cells.EMPTY);
+        for (int line = 1; line <= WIDTH; line++){
+            System.out.print(' ');
+            System.out.print(line);
+        }
+        System.out.print('\n');
 
-        printField(true);
-        takeAShot();
+        for (int line = 0; line < WIDTH; line++){
+            System.out.print(getLineChar(line));
+            for (int column = 0; column < WIDTH; ++column){
+                System.out.print(' ');
+                if (fog_of_war && FIELD[line][column] == Cells.SHIP){
+                    System.out.print(Cells.FOG);
+                } else {
+                    System.out.print(FIELD[line][column]);
+                }
+            }
+            System.out.print('\n');
+        }
     }
 
-    private void takeAShot(){
-        System.out.println("Take a shot!");
+    public void takeAShot(){
         Scanner scanner = new Scanner(System.in);
 
-        while (true) {
-            try {
-                String msg;
-                Point point = parsePoint(scanner.nextLine());
-                if (FIELD[point.line][point.column] == Cells.MISS ||
-                        FIELD[point.line][point.column] == Cells.HIT){
-                    msg = "Bad location!";
-                } else if (FIELD[point.line][point.column] == Cells.SHIP){
-                    FIELD[point.line][point.column] = Cells.HIT;
-                    try {
-                        POINT_TO_MAP.get(point).getDamage();
-                        msg = "You hit a ship! Try again:";
-                    } catch (AlreadyDestroyedShip e){
-                        SHIPS_COUNT--;
-                        msg = "You sank a ship! Specify a new target:";
-                    }
-                } else {
-                    FIELD[point.line][point.column] = Cells.MISS;
-                    msg = "You missed! Try again:";
+        try {
+            String msg;
+            Point point = parsePoint(scanner.nextLine());
+            if (FIELD[point.line][point.column] == Cells.MISS ||
+                    FIELD[point.line][point.column] == Cells.HIT){
+                msg = "Bad location!";
+            } else if (FIELD[point.line][point.column] == Cells.SHIP){
+                FIELD[point.line][point.column] = Cells.HIT;
+                try {
+                    POINT_TO_MAP.get(point).getDamage();
+                    msg = "You hit a ship!";
+                } catch (AlreadyDestroyedShip e){
+                    SHIPS_COUNT--;
+                    msg = "You sank a ship! Specify a new target:";
                 }
-                printField(true);
-                System.out.println(msg);
-                if (SHIPS_COUNT == 0){
-                    System.out.println("You sank the last ship. You won. Congratulations!");
-                    System.exit(0);
-                }
-            } catch (BadInputException e) {
-                printErrorMsg(e.getMessage());
+            } else {
+                FIELD[point.line][point.column] = Cells.MISS;
+                msg = "You missed!";
             }
+            printField(true);
+            System.out.println(msg);
+            if (SHIPS_COUNT == 0){
+                System.out.println("You sank the last ship. You won. Congratulations!");
+                System.exit(0);
+            }
+        } catch (BadInputException e) {
+            printErrorMsg(e.getMessage());
         }
     }
 
@@ -179,6 +189,7 @@ class Battleship {
         };
         SHIPS_COUNT = lengths.length;
 
+        printField(false);
         Scanner scanner = new Scanner(System.in);
         for (int i = 0; i < 5;){
             System.out.print("Enter the coordinates of the ");
@@ -211,28 +222,6 @@ class Battleship {
             for (column = 0; column < WIDTH; column++){
                 FIELD[line][column] = Cells.FOG;
             }
-        }
-    }
-
-    private void printField(boolean fog_of_war){
-        System.out.print(Cells.EMPTY);
-        for (int line = 1; line <= WIDTH; line++){
-            System.out.print(' ');
-            System.out.print(line);
-        }
-        System.out.print('\n');
-
-        for (int line = 0; line < WIDTH; line++){
-            System.out.print(getLineChar(line));
-            for (int column = 0; column < WIDTH; ++column){
-                System.out.print(' ');
-                if (fog_of_war && FIELD[line][column] == Cells.SHIP){
-                    System.out.print(Cells.FOG);
-                } else {
-                    System.out.print(FIELD[line][column]);
-                }
-            }
-            System.out.print('\n');
         }
     }
 
@@ -311,6 +300,61 @@ class Battleship {
 
 public class Main {
     public static void main(String[] args) {
-	    Battleship battleship = new Battleship();
+        Battleship player_1;
+        Battleship player_2;
+
+        String name_1;
+        String name_2;
+
+        {
+            name_1 = "Player 1";
+            name_2 = "Player 2";
+            String place_ships_msg = "place your ships on the game field";
+
+            printPlayerMsg(name_1, place_ships_msg);
+            player_1 = new Battleship();
+            printPassMoveMsg();
+
+            printPlayerMsg(name_2, place_ships_msg);
+            player_2 = new Battleship();
+            printPassMoveMsg();
+        }
+
+        {
+            String player_name;
+            Battleship player_field;
+            Battleship enemy_field;
+            boolean is_first = true;
+
+            while (true){
+                player_name = (is_first) ? name_1 : name_2;
+                player_field = (is_first) ? player_1 : player_2;
+                enemy_field = (is_first) ? player_2 : player_1;
+
+                enemy_field.printField(true);
+                System.out.println("---------------------");
+                player_field.printField(false);
+
+                printPlayerMsg(player_name, "it's your turn:");
+                enemy_field.takeAShot();
+                printPassMoveMsg();
+
+                is_first = !is_first;
+            }
+        }
+    }
+
+    private static void printPlayerMsg(String player, String msg){
+        System.out.print(player);
+        System.out.print(", ");
+        System.out.println(msg);
+    }
+
+    private static void printPassMoveMsg(){
+        System.out.println("Press Enter and pass the move to another player");
+        System.out.println("...");
+
+        Scanner scanner = new Scanner(System.in);
+        scanner.nextLine();
     }
 }
