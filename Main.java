@@ -1,11 +1,18 @@
 package com.company;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
-import java.util.stream.IntStream;
 
 class BadInputException extends Exception {
     BadInputException(String msg){
         super(msg);
+    }
+}
+
+class AlreadyDestroyedShip extends Exception {
+    AlreadyDestroyedShip(){
+        super("Ship is destroyed!");
     }
 }
 
@@ -25,6 +32,28 @@ class Point {
         this.line = line;
         this.column = column;
     }
+
+    public Point(Point another){
+        this.line = another.line;
+        this.column = another.column;
+    }
+
+    @Override
+    public boolean equals(final Object another){
+        if (this == another){
+            return true;
+        }
+        if (this.getClass() != another.getClass()){
+            return false;
+        }
+        Point another_point = (Point)another;
+        return line == another_point.line && column == another_point.column;
+    }
+
+    @Override
+    public int hashCode(){
+        return line * 17 + column * 19 + 123;
+    }
 }
 
 class Ship {
@@ -32,6 +61,8 @@ class Ship {
     final private int length;
     final private Point begin;
     final private Point end;
+
+    private int hit_points;
 
     Ship(Point first, Point second) throws BadInputException{
         if (first.column == second.column){
@@ -50,8 +81,17 @@ class Ship {
             end = first;
         }
 
-        length = ((begin.line == end.line) ?
+        hit_points = length = ((begin.line == end.line) ?
                 (end.column - begin.column) : (end.line - begin.line)) + 1;
+    }
+
+    void getDamage() throws AlreadyDestroyedShip {
+        if (hit_points > 0) {
+            hit_points--;
+        }
+        if (hit_points == 0){
+            throw new AlreadyDestroyedShip();
+        }
     }
 
     boolean isVertical(){
@@ -63,17 +103,19 @@ class Ship {
     }
 
     Point getBegin(){
-        return new Point(begin.line, begin.column);
+        return new Point(begin);
     }
 
     Point getEnd(){
-        return new Point(end.line, end.column);
+        return new Point(end);
     }
 }
 
 class Battleship {
     private final int WIDTH = 10;
-    private int HIT_POINTS = 0;
+
+    private Map<Point, Ship> POINT_TO_MAP;
+    private int SHIPS_COUNT;
     private char[][] FIELD;
 
     public Battleship(){
@@ -98,18 +140,28 @@ class Battleship {
             try {
                 String msg;
                 Point point = parsePoint(scanner.nextLine());
-                if (FIELD[point.line][point.column] == Cells.SHIP){
+                if (FIELD[point.line][point.column] == Cells.MISS ||
+                        FIELD[point.line][point.column] == Cells.HIT){
+                    msg = "Bad location!";
+                } else if (FIELD[point.line][point.column] == Cells.SHIP){
                     FIELD[point.line][point.column] = Cells.HIT;
-                    HIT_POINTS--;
-                    msg = "You hit a ship!";
+                    try {
+                        POINT_TO_MAP.get(point).getDamage();
+                        msg = "You hit a ship! Try again:";
+                    } catch (AlreadyDestroyedShip e){
+                        SHIPS_COUNT--;
+                        msg = "You sank a ship! Specify a new target:";
+                    }
                 } else {
                     FIELD[point.line][point.column] = Cells.MISS;
-                    msg = "You missed!";
+                    msg = "You missed! Try again:";
                 }
                 printField(true);
                 System.out.println(msg);
-                printField(false);
-                break;
+                if (SHIPS_COUNT == 0){
+                    System.out.println("You sank the last ship. You won. Congratulations!");
+                    System.exit(0);
+                }
             } catch (BadInputException e) {
                 printErrorMsg(e.getMessage());
             }
@@ -125,7 +177,7 @@ class Battleship {
                 "Cruiser",
                 "Destroyer"
         };
-        HIT_POINTS = IntStream.of(lengths).sum();
+        SHIPS_COUNT = lengths.length;
 
         Scanner scanner = new Scanner(System.in);
         for (int i = 0; i < 5;){
@@ -151,6 +203,7 @@ class Battleship {
     }
 
     private void intiField(){
+        POINT_TO_MAP = new HashMap<>();
         FIELD = new char[WIDTH][WIDTH];
 
         int line, column;
@@ -240,6 +293,7 @@ class Battleship {
 
         for (int i = 0; i < ship.getLength(); i++){
             FIELD[begin.line][begin.column] = Cells.SHIP;
+            POINT_TO_MAP.put(new Point(begin), ship);
             if (ship.isVertical()){
                 begin.column++;
             } else {
