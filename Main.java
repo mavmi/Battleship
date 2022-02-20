@@ -1,6 +1,7 @@
 package com.company;
 
 import java.util.Scanner;
+import java.util.stream.IntStream;
 
 class BadInputException extends Exception {
     BadInputException(String msg){
@@ -72,12 +73,43 @@ class Ship {
 
 class Battleship {
     private final int WIDTH = 10;
+    private int HIT_POINTS = 0;
     private char[][] FIELD;
 
     public Battleship(){
         intiField();
         printField();
         setShips();
+        startGame();
+    }
+
+    private void startGame(){
+        System.out.println("The game starts!");
+
+        takeAShot();
+    }
+
+    private void takeAShot(){
+        System.out.println("Take a shot!");
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            try {
+                Point point = parsePoint(scanner.nextLine());
+                if (FIELD[point.line][point.column] == Cells.SHIP){
+                    FIELD[point.line][point.column] = Cells.HIT;
+                    HIT_POINTS--;
+                    System.out.println("You hit a ship!");
+                } else {
+                    FIELD[point.line][point.column] = Cells.MISS;
+                    System.out.println("You missed!");
+                }
+                printField();
+                break;
+            } catch (BadInputException e) {
+                printErrorMsg(e.getMessage());
+            }
+        }
     }
 
     private void setShips(){
@@ -89,6 +121,7 @@ class Battleship {
                 "Cruiser",
                 "Destroyer"
         };
+        HIT_POINTS = IntStream.of(lengths).sum();
 
         Scanner scanner = new Scanner(System.in);
         for (int i = 0; i < 5;){
@@ -108,9 +141,7 @@ class Battleship {
                 printField();
                 i++;
             } catch (Exception e){
-                System.out.print("Error! ");
-                System.out.print(e.getMessage());
-                System.out.println(" Try again:");
+                printErrorMsg(e.getMessage());
             }
         }
     }
@@ -149,7 +180,7 @@ class Battleship {
     }
 
     private Point parsePoint(String input) throws BadInputException {
-        String exc_msg = "Invalid input!";
+        String exc_msg = "You entered the wrong coordinates!";
 
         if (input.length() < 2){
             throw new BadInputException(exc_msg);
@@ -207,6 +238,12 @@ class Battleship {
                 begin.line++;
             }
         }
+    }
+
+    private void printErrorMsg(String msg){
+        System.out.print("Error! ");
+        System.out.print(msg);
+        System.out.println(" Try again:");
     }
 }
 
