@@ -78,7 +78,7 @@ class Battleship {
 
     public Battleship(){
         intiField();
-        printField();
+        printField(false);
         setShips();
         startGame();
     }
@@ -86,6 +86,7 @@ class Battleship {
     private void startGame(){
         System.out.println("The game starts!");
 
+        printField(true);
         takeAShot();
     }
 
@@ -95,16 +96,19 @@ class Battleship {
 
         while (true) {
             try {
+                String msg;
                 Point point = parsePoint(scanner.nextLine());
                 if (FIELD[point.line][point.column] == Cells.SHIP){
                     FIELD[point.line][point.column] = Cells.HIT;
                     HIT_POINTS--;
-                    System.out.println("You hit a ship!");
+                    msg = "You hit a ship!";
                 } else {
                     FIELD[point.line][point.column] = Cells.MISS;
-                    System.out.println("You missed!");
+                    msg = "You missed!";
                 }
-                printField();
+                printField(true);
+                System.out.println(msg);
+                printField(false);
                 break;
             } catch (BadInputException e) {
                 printErrorMsg(e.getMessage());
@@ -131,16 +135,16 @@ class Battleship {
             System.out.print(lengths[i]);
             System.out.println(" cells):");
 
-            try{
+            try {
                 Ship ship = parseShip(scanner.nextLine());
-                if (ship.getLength() != lengths[i]){
+                if (ship.getLength() != lengths[i]) {
                     throw new BadInputException("Wrong length of the " + ships[i] + "!");
                 }
                 checkPosition(ship);
                 addShip(ship);
-                printField();
+                printField(false);
                 i++;
-            } catch (Exception e){
+            } catch (Exception e) {
                 printErrorMsg(e.getMessage());
             }
         }
@@ -157,7 +161,7 @@ class Battleship {
         }
     }
 
-    private void printField(){
+    private void printField(boolean fog_of_war){
         System.out.print(Cells.EMPTY);
         for (int line = 1; line <= WIDTH; line++){
             System.out.print(' ');
@@ -169,7 +173,11 @@ class Battleship {
             System.out.print(getLineChar(line));
             for (int column = 0; column < WIDTH; ++column){
                 System.out.print(' ');
-                System.out.print(FIELD[line][column]);
+                if (fog_of_war && FIELD[line][column] == Cells.SHIP){
+                    System.out.print(Cells.FOG);
+                } else {
+                    System.out.print(FIELD[line][column]);
+                }
             }
             System.out.print('\n');
         }
